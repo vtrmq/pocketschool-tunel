@@ -1,24 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/server.js": {
+      "runtime": "edge"
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api",
-      "methods": ["GET", "POST", "HEAD"],
-      "headers": {
-        "Upgrade": "websocket",
-        "Connection": "Upgrade"
-      },
-      "dest": "api/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "api/index.js"
+      "dest": "/api/server.js"
     }
   ]
 }

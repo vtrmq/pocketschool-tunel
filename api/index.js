@@ -1,51 +1,48 @@
-const WebSocket = require('ws');
+// api/server.js
+import { WebSocketPair } from 'next/websocket';
 
-module.exports = (req, res) => {
-  console.log('Solicitud recibida:', req.url, req.headers);
-
-  if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
-    console.log('Iniciando actualización WebSocket');
-
-    // Crear servidor WebSocket
-    const wss = new WebSocket.Server({ noServer: true });
-
-    wss.on('connection', (ws) => {
-      console.log('Cliente conectado');
-      ws.on('message', (msg) => {
-        console.log('Mensaje recibido:', msg.toString());
-        ws.send(`Eco: ${msg}`);
-      });
-      ws.on('close', () => {
-        console.log('Cliente desconectado');
-      });
-      ws.on('error', (err) => {
-        console.error('Error en WebSocket:', err.message);
-      });
-    });
-
-    // Manejar la actualización WebSocket
-    if (res.socket.server) {
-      res.socket.server.on('upgrade', (request, socket, head) => {
-        console.log('Procesando solicitud de upgrade:', request.url);
-        if (request.url === '/api') {
-          wss.handleUpgrade(request, socket, head, (ws) => {
-            wss.emit('connection', ws, request);
-          });
-        } else {
-          socket.destroy();
-        }
-      });
-    } else {
-      console.error('No se encontró res.socket.server');
-      res.status(500).send('Servidor no configurado para WebSocket');
-      return;
-    }
-
-    // Enviar respuesta vacía para completar la solicitud inicial
-    res.status(200).end();
-  } else {
-    // Manejar solicitudes HTTP normales
-    console.log('Solicitud HTTP normal');
-    res.status(200).send('Use WebSocket to connect a client');
-  }
+export const config = {
+  runtime: 'edge',
 };
+
+export default async function handler(request) {
+  // Verificar si la solicitud es para establecer una conexión WebSocket
+  const upgradeHeader = request.headers.get('upgrade');
+  
+  if (upgradeHeader !== 'websocket') {
+    return new Response('Se requiere una conexión WebSocket', { 
+      status: 426,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+
+  // Crear un par de WebSockets
+  const { 0: client, 1: server } = new WebSocketPair();
+  
+  // Configurar el WebSocket del servidor
+  server.accept();
+  
+  // Manejar eventos del WebSocket
+  server.addEventListener('message', (event) => {
+    console.log(`Mensaje recibido: ${event.data}`);
+    server.send(JSON.stringify({
+      status: 'success',
+      message: 'Conexión WebSocket establecida correctamente',
+      timestamp: new Date().toISOString(),
+      received: event.data
+    }));
+  });
+
+  // Enviar un mensaje inicial cuando se conecta
+  server.send(JSON.stringify({
+    status: 'connected',
+    message: 'Servidor WebSocket en Vercel conectado correctamente',
+    timestamp: new Date().toISOString()
+  }));
+  
+  // Devolver la respuesta con el WebSocket del cliente
+  return new Response(null, {
+    status: 101,
+    webSocket: client
+  });
+}

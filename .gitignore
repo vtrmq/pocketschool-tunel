@@ -1,0 +1,30 @@
+# Dependencias de Node.js
+node_modules/
+
+# Archivos de Vercel
+.vercel
+
+# Variables de entorno
+.env
+.env.local
+.env.development
+.env.production
+
+# Archivos de logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de editores e IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+

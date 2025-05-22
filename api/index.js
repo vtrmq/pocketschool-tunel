@@ -1,10 +1,14 @@
 const WebSocket = require('ws');
 
 module.exports = (req, res) => {
-  console.log('Solicitud recibida:', req.url, req.headers);
+  console.log('Solicitud recibida:', {
+    url: req.url,
+    headers: req.headers,
+    upgrade: req.headers.upgrade
+  });
 
   if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
-    console.log('Iniciando conexión WebSocket');
+    console.log('Detectada solicitud WebSocket');
 
     const wss = new WebSocket.Server({ noServer: true });
 
@@ -27,8 +31,9 @@ module.exports = (req, res) => {
     });
 
     if (res.socket.server) {
+      console.log('Configurando evento de upgrade');
       res.socket.server.on('upgrade', (request, socket, head) => {
-        console.log('Procesando upgrade para:', request.url);
+        console.log('Procesando upgrade:', request.url);
         wss.handleUpgrade(request, socket, head, (ws) => {
           wss.emit('connection', ws, request);
         });

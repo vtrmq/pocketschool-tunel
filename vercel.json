@@ -9,12 +9,11 @@
   "routes": [
     {
       "src": "/api",
-      "methods": ["GET", "HEAD"],
+      "dest": "api/index.js",
       "headers": {
         "Upgrade": "websocket",
         "Connection": "Upgrade"
-      },
-      "dest": "api/index.js"
+      }
     },
     {
       "src": "/(.*)",

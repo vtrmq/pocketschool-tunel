@@ -44,7 +44,7 @@ module.exports = (req, res) => {
       return;
     }
 
-    res.status(200).end();
+    // No enviar respuesta HTTP aquí para permitir la actualización WebSocket
   } else {
     console.log('Solicitud HTTP normal');
     res.status(200).send('Use WebSocket to connect a client');

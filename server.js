@@ -1,14 +1,11 @@
 const WebSocket = require('ws');
 const http = require('http');
 
-const server = http.createServer((req, res) => {
-  console.log('Solicitud HTTP:', req.url);
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Use WebSocket to connect a client');
-});
+const server = http.createServer();
 
 const wss = new WebSocket.Server({ server });
 let clientWs = null;
+const pendingRequests = {};
 
 wss.on('connection', (ws) => {
   console.log('Cliente conectado exitosamente');
@@ -18,11 +15,13 @@ wss.on('connection', (ws) => {
     try {
       const { id, data } = JSON.parse(message);
       const pendingRequest = pendingRequests[id];
-      if (pendingRequest) {
+      if (pendingRequest && !pendingRequest.res.writableEnded) {
         const { res } = pendingRequest;
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(data);
         delete pendingRequests[id];
+      } else {
+        console.log('Solicitud ya respondida o no encontrada:', id);
       }
     } catch (err) {
       console.error('Error procesando mensaje:', err.message);
@@ -39,18 +38,23 @@ wss.on('connection', (ws) => {
   });
 });
 
-const pendingRequests = {};
-
 server.on('request', (req, res) => {
+  console.log('Solicitud HTTP:', req.method, req.url);
+
   if (req.url === '/' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Use WebSocket to connect a client');
-    return;
+    if (!clientWs || clientWs.readyState !== WebSocket.OPEN) {
+      res.writeHead(503, { 'Content-Type': 'text/plain' });
+      res.end('No hay cliente conectado');
+      return;
+    }
+    // Continuar con el manejo de la solicitud
   }
 
   if (!clientWs || clientWs.readyState !== WebSocket.OPEN) {
-    res.writeHead(503, { 'Content-Type': 'text/plain' });
-    res.end('No hay cliente conectado');
+    if (!res.writableEnded) {
+      res.writeHead(503, { 'Content-Type': 'text/plain' });
+      res.end('No hay cliente conectado');
+    }
     return;
   }
 
@@ -74,8 +78,10 @@ server.on('request', (req, res) => {
     });
   } catch (err) {
     console.error('Error enviando solicitud:', err.message);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Error interno del servidor');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Error interno del servidor');
+    }
     delete pendingRequests[id];
   }
 });

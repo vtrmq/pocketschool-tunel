@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "index.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
@@ -14,11 +14,11 @@
         "Upgrade": "websocket",
         "Connection": "Upgrade"
       },
-      "dest": "index.js"
+      "dest": "api/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "index.js"
+      "dest": "api/index.js"
     }
   ]
 }

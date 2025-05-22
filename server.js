@@ -2,7 +2,6 @@ const WebSocket = require('ws');
 const http = require('http');
 
 const server = http.createServer();
-
 const wss = new WebSocket.Server({ server });
 let clientWs = null;
 const pendingRequests = {};
@@ -13,11 +12,15 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     try {
-      const { id, data } = JSON.parse(message);
+      const { id, data, headers = {}, status = 200 } = JSON.parse(message);
+      console.log('Respuesta recibida del cliente:', { id, status, contentType: headers['Content-Type'] });
       const pendingRequest = pendingRequests[id];
       if (pendingRequest && !pendingRequest.res.writableEnded) {
         const { res } = pendingRequest;
-        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.writeHead(status, {
+          'Content-Type': headers['Content-Type'] || 'text/html',
+          ...headers
+        });
         res.end(data);
         delete pendingRequests[id];
       } else {
@@ -40,15 +43,6 @@ wss.on('connection', (ws) => {
 
 server.on('request', (req, res) => {
   console.log('Solicitud HTTP:', req.method, req.url);
-
-  if (req.url === '/' && req.method === 'GET') {
-    if (!clientWs || clientWs.readyState !== WebSocket.OPEN) {
-      res.writeHead(503, { 'Content-Type': 'text/plain' });
-      res.end('No hay cliente conectado');
-      return;
-    }
-    // Continuar con el manejo de la solicitud
-  }
 
   if (!clientWs || clientWs.readyState !== WebSocket.OPEN) {
     if (!res.writableEnded) {
